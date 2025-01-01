@@ -1,54 +1,52 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-import google.generativeai as genai
-import os
-from dotenv import load_dotenv
+import logging
+from .api import auth, chat, files, pdf, content
+from .core.config import settings
 
-from .api import chat, files, pdf
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 
-# Load environment variables
-load_dotenv()
-
-# Initialize Gemini API
-genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
-    title="Enhanced AI Chatbot",
-    description="An AI-powered chatbot with voice, image, and PDF generation capabilities",
-    version="1.0.0"
+    title=settings.APP_NAME,
+    version=settings.APP_VERSION,
+    description="An AI-powered story generation application"
 )
 
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with specific origins
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=settings.CORS_ORIGINS,
+    allow_credentials=settings.CORS_CREDENTIALS,
+    allow_methods=settings.CORS_METHODS,
+    allow_headers=settings.CORS_HEADERS,
 )
 
-# Include routers
-app.include_router(chat.router)
-app.include_router(files.router)
-app.include_router(pdf.router)
+# Include routers with /api prefix
+app.include_router(auth.router, prefix=settings.API_PREFIX)
+app.include_router(chat.router, prefix=settings.API_PREFIX)
+app.include_router(files.router, prefix=settings.API_PREFIX)
+app.include_router(pdf.router, prefix=settings.API_PREFIX)
+app.include_router(content.router, prefix=settings.API_PREFIX)
 
-@app.get("/")
-async def root():
-    return {"message": "Welcome to Enhanced AI Chatbot API"}
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Global exception handler for unhandled exceptions."""
+    logger.error(f"Unhandled exception: {str(exc)}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": "An unexpected error occurred. Please try again later."
+        }
+    )
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy"}
-
-# Error handler
-@app.exception_handler(HTTPException)
-async def http_exception_handler(request, exc):
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={"message": exc.detail},
-    )
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000) 
+    """Health check endpoint."""
+    return {"status": "healthy", "version": settings.APP_VERSION} 

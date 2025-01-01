@@ -36,20 +36,38 @@ An advanced chatbot platform that extends beyond traditional text-based interact
 
    ```bash
    cp .env.example .env
-   # Add your Google Gemini API key to .env
+   # Add your Google Gemini API key, Database URL, secret key, and other necessary variables to .env
    ```
 
-4. Run the backend:
+4. Generate a secret key for app encryption:
+
+   ```bash
+   python -c 'import secrets; print(secrets.token_urlsafe(32))'
+   # Add the generated key to .env as ENCRYPTION_KEY
+
+5. Generate prisma schema:
+
+   ```bash
+   prisma generate
+   prisma db push
+   ```
+
+6. Run the backend:
 
    ```bash
    uvicorn app.main:app --reload
    ```
 
-5. Install frontend dependencies:
+7. Install frontend dependencies:
 
    ```bash
    cd frontend
    npm install
+   ```
+
+8. Run the frontend:
+
+   ```bash
    npm run dev
    ```
 
@@ -60,11 +78,17 @@ An advanced chatbot platform that extends beyond traditional text-based interact
 │   ├── main.py
 │   ├── api/
 │   ├── core/
+│   ├── middleware/
 │   ├── models/
 │   └── services/
 ├── frontend/
 │   ├── src/
 │   └── public/
+├── prisma/
+│   ├── schema.prisma
+│   └── migrations/
+├── .env
+├── storage/
 ├── requirements.txt
 └── README.md
 ```

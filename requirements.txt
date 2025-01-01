@@ -1,12 +1,45 @@
+# FastAPI and server
 fastapi==0.109.2
 uvicorn==0.27.1
-python-multipart==0.0.6
-google-generativeai==0.3.2
-pyttsx3==2.90
-SpeechRecognition==3.10.1
-Pillow==10.2.0
-easyocr==1.7.1
-fpdf==1.7.2
-sqlalchemy==2.0.25
+python-multipart==0.0.9
+pydantic==2.6.1
+pydantic-settings==2.1.0
 python-dotenv==1.0.1
-pydantic==2.6.1 
+
+# Authentication and security
+passlib==1.7.4
+bcrypt==4.1.2
+cryptography==42.0.2
+python-jose[cryptography]==2.22
+
+# Database
+prisma==0.11.0
+motor==3.3.2
+
+# Caching and rate limiting
+redis==5.0.1
+redis-om==0.3.3
+aioredis==2.0.1
+
+# AI and ML
+google-generativeai==0.3.2
+SpeechRecognition==3.10.0
+pillow==10.2.0
+numpy==1.26.4
+pydub==0.25.1
+
+# PDF generation
+reportlab==4.1.0
+pypdf2==3.0.1
+
+# Utilities
+python-slugify==8.0.4
+python-magic==0.4.27
+aiofiles==23.2.1
+requests==2.31.0
+pydantic[email]==3.10.0
+
+# Testing
+pytest==8.0.0
+pytest-asyncio==0.23.5
+httpx==0.26.0

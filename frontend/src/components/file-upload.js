@@ -5,8 +5,11 @@ import { Progress } from "@/components/ui/progress"
 import { X } from "lucide-react"
 
 export function FileUpload({ onUpload, accept = {
-  'image/*': ['.png', '.jpg', '.jpeg', '.gif'],
-  'text/plain': ['.txt']
+  'image/*': ['.png', '.jpg', '.jpeg', '.webp'],
+  'text/plain': ['.txt'],
+  'application/pdf': ['.pdf'],
+  'application/msword': ['.doc'],
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx']
 } }) {
   const [file, setFile] = useState(null)
   const [uploading, setUploading] = useState(false)

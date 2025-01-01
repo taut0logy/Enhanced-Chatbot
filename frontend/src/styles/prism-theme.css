@@ -13,6 +13,7 @@ pre[class*="language-"] {
   font-size: 0.9em;
   tab-size: 2;
   hyphens: none;
+  -webkit-hyphens: none;
 }
 
 /* Code blocks */

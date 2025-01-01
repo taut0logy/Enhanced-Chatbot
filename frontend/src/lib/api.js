@@ -2,38 +2,54 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 export const api = {
   // Chat endpoints
-  async sendMessage(message) {
-    const response = await fetch(`${API_BASE_URL}/chat/text`, {
+  async sendMessage(message, modelName = null) {
+    const response = await fetch(`${API_BASE_URL}/api/chat/text`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
       },
-      body: JSON.stringify({ message }),
+      body: JSON.stringify({ 
+        message,
+        model_name: modelName 
+      }),
     })
     if (!response.ok) {
       const error = await response.json()
       throw new Error(error.detail || 'Failed to send message')
     }
-    return response.json()
+    const data = await response.json()
+    return data // Return the actual response data
   },
 
-  async sendVoice(formData) {
-    const response = await fetch(`${API_BASE_URL}/chat/voice`, {
+  async sendVoice(audioBlob, modelName = null) {
+    const formData = new FormData()
+    formData.append('audio', audioBlob, 'audio.webm')
+    if (modelName) {
+      formData.append('model_name', modelName)
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/chat/voice`, {
       method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      },
       body: formData
     })
     if (!response.ok) {
       const error = await response.json()
       throw new Error(error.detail || 'Failed to process voice')
     }
-    return response.json()
+    const data = await response.json()
+    return data.data
   },
 
   async textToSpeech(text) {
-    const response = await fetch(`${API_BASE_URL}/chat/text-to-speech`, {
+    const response = await fetch(`${API_BASE_URL}/api/chat/text-to-speech`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
       },
       body: JSON.stringify({ text }),
     })
@@ -49,8 +65,11 @@ export const api = {
     const formData = new FormData()
     formData.append('file', file)
 
-    const response = await fetch(`${API_BASE_URL}/files/upload`, {
+    const response = await fetch(`${API_BASE_URL}/api/files/upload`, {
       method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      },
       body: formData,
     })
     if (!response.ok) {
@@ -60,12 +79,18 @@ export const api = {
     return response.json()
   },
 
-  async processImage(imageFile) {
+  async processFile(file, modelName = null) {
     const formData = new FormData()
-    formData.append('image', imageFile)
+    formData.append('file', file)
+    if (modelName) {
+      formData.append('model_name', modelName)
+    }
 
-    const response = await fetch(`${API_BASE_URL}/files/process-image`, {
+    const response = await fetch(`${API_BASE_URL}/api/files/process-file`, {
       method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      },
       body: formData,
     })
     if (!response.ok) {
@@ -76,13 +101,17 @@ export const api = {
   },
 
   // PDF endpoints
-  async generateStory(prompt) {
-    const response = await fetch(`${API_BASE_URL}/pdf/generate-story`, {
+  async generateStory(prompt, modelName = null) {
+    const response = await fetch(`${API_BASE_URL}/api/pdf/generate-story`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
       },
-      body: JSON.stringify({ prompt }),
+      body: JSON.stringify({
+        prompt,
+        model_name: modelName
+      })
     })
     if (!response.ok) {
       const error = await response.json()
@@ -92,7 +121,11 @@ export const api = {
   },
 
   async downloadPdf(fileId) {
-    const response = await fetch(`${API_BASE_URL}/pdf/download/${fileId}`)
+    const response = await fetch(`${API_BASE_URL}/api/pdf/download/${fileId}`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      },
+    })
     if (!response.ok) {
       const error = await response.json()
       throw new Error(error.detail || 'Failed to download PDF')
@@ -101,7 +134,11 @@ export const api = {
   },
 
   async listPdfs() {
-    const response = await fetch(`${API_BASE_URL}/pdf/files`)
+    const response = await fetch(`${API_BASE_URL}/api/pdf/files`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      },
+    })
     if (!response.ok) {
       const error = await response.json()
       throw new Error(error.detail || 'Failed to list PDFs')
@@ -110,10 +147,11 @@ export const api = {
   },
 
   async generateCustomPDF(prompt, templateType) {
-    const response = await fetch(`${API_BASE_URL}/pdf/generate-custom`, {
+    const response = await fetch(`${API_BASE_URL}/api/pdf/generate-custom`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
       },
       body: JSON.stringify({ prompt, template_type: templateType }),
     })

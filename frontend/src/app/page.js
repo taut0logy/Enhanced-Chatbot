@@ -44,7 +44,7 @@ export default function Home() {
     try {
       const response = await api.sendMessage(inputMessage)
       if (response.success) {
-        setMessages(prev => [...prev, { text: response.response, isBot: true }])
+        setMessages(prev => [...prev, { text: response.data.text, isBot: true }])
       }
     } catch (error) {
       toast.error("Failed to send message", {
@@ -95,26 +95,22 @@ export default function Home() {
       mediaRecorder.current.onstop = async () => {
         try {
           // Create blob from chunks
-          const audioBlob = new Blob(audioChunks.current, { type: mimeType })
-          
-          // Create FormData and append the blob with a filename
-          const formData = new FormData()
-          formData.append('audio', audioBlob, 'recording.webm')
+          const audioBlob = new Blob(audioChunks.current, { type: 'audio/webm' })
           
           setIsLoading(true)
-          const response = await api.sendVoice(formData)
+          const response = await api.sendVoice(audioBlob)
           
-          if (response.success) {
+          if (response) {
             setMessages(prev => [
               ...prev,
-              { text: response.text_input, isBot: false },
-              { text: response.response, isBot: true }
+              { text: "Voice message sent", isBot: false },
+              { text: response.text, isBot: true }
             ])
           }
         } catch (error) {
           console.error('Voice processing error:', error)
           toast.error("Failed to process voice", {
-            description: error.message || "There was an error processing your voice recording. Please try again."
+            description: error.message
           })
         } finally {
           setIsLoading(false)
@@ -154,10 +150,10 @@ export default function Home() {
         setMessages(prev => [
           ...prev,
           { text: `File processed: ${file.name}`, isBot: false },
-          { text: response.ai_response.response, isBot: true }
+          { text: response.data.text, isBot: true }
         ]);
         toast.success("File processed successfully", { id: "fileUpload" });
-      } else {
+      } else if (response.error) {
         toast.error("Failed to process file", {
           id: "fileUpload",
           description: response.error || "An unexpected error occurred"
@@ -394,7 +390,7 @@ export default function Home() {
           <TabsContent value="pdf">
             <Card className="border-t-0">
               <CardHeader>
-                <CardTitle>PDF Generation</CardTitle>
+                <CardTitle>Story Generation</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex flex-col space-y-4">
