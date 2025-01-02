@@ -14,6 +14,9 @@ class ChatMessage(BaseModel):
     message: str
     model_name: Optional[str] = None
 
+class TextToSpeech(BaseModel):
+    text: str
+
 @router.post("/text")
 async def chat_text(
     message: ChatMessage,
@@ -47,6 +50,10 @@ async def chat_voice(
     Process voice input and return AI response
     """
     try:
+        # throw exception if the file size is larger than 10 MB
+        if audio.size > 10 * 1024 * 1024:
+            raise HTTPException(status_code=413, detail="File size is too large")
+
         # Read the audio file into memory
         audio_bytes = await audio.read()
         
@@ -66,7 +73,7 @@ async def chat_voice(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/text-to-speech")
-async def text_to_speech(text: str):
+async def text_to_speech(text: TextToSpeech):
     """
     Convert text to speech
     """

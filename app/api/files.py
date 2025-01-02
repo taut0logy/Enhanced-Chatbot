@@ -18,6 +18,10 @@ async def upload_file(
     current_user: Dict = Depends(get_current_user)
 ):
     """Upload and process a file (image or text)"""
+    logger.info(f"Received file upload request: {file.filename}")
+    if file.size > 20 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File size exceeds the 20MB limit")
+    
     try:
         logger.info(f"Received file upload request: {file.filename}")
         
@@ -25,7 +29,7 @@ async def upload_file(
         file_content = await file.read()
         
         # Process the file
-        result = await file_service.process_file(
+        result = await file_service.process_file_with_gemini(
             file=file.file,
             filename=file.filename,
             user_id=str(current_user["id"]),
@@ -92,4 +96,4 @@ async def process_image(
         raise HTTPException(
             status_code=500,
             detail="An unexpected error occurred while processing the image"
-        ) 
+        )

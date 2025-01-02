@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Body
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from typing import Dict, Optional
+from typing import Dict, Optional, Any
 from pydantic import BaseModel, EmailStr
 from ..services.auth_service import auth_service
 from ..services.cache_service import cache_service
@@ -191,38 +191,43 @@ async def delete_me(current_user: Dict = Depends(get_current_user)):
         )
 
 @router.post("/verify-email")
-async def verify_email(request: VerifyEmailRequest):
-    """Verify user's email address using the verification token."""
+async def verify_email(
+    token: str = Body(..., embed=True)
+) -> Dict[str, Any]:
     try:
         # Verify the token
-        payload = email_service.verify_token(request.token, 'email_verification')
+        payload = email_service.verify_token(token, "email_verification")
         if not payload:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
+                status_code=400,
                 detail="Invalid or expired verification token"
             )
 
-        # Update user's verification status
-        email = payload['email']
-        user = await auth_service.get_user_by_email(email)
-        if not user:
+        # Update user's email verification status
+        email = payload.get("email")
+        if not email:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found"
+                status_code=400,
+                detail="Invalid token payload"
             )
 
-        if user.isVerified:
-            return {"message": "Email already verified"}
+        # Mark email as verified
+        success = await auth_service.verify_email(email)
+        if not success:
+            raise HTTPException(
+                status_code=400,
+                detail="Failed to verify email"
+            )
 
-        await auth_service.update_user(user.id, {
-            "isVerified": True,
-            "verifiedAt": datetime.utcnow()
-        })
+        return {
+            "success": True,
+            "message": "Email verified successfully"
+        }
 
-        return {"message": "Email verified successfully"}
     except Exception as e:
+        logger.error(f"Email verification failed: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=400,
             detail=str(e)
         )
 

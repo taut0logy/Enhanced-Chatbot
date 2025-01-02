@@ -1,45 +1,53 @@
 # FastAPI and server
-fastapi==0.109.2
-uvicorn==0.27.1
-python-multipart==0.0.9
-pydantic==2.6.1
-pydantic-settings==2.1.0
-python-dotenv==1.0.1
+fastapi
+uvicorn
+python-multipart
+pydantic
+pydantic-settings
+python-dotenv
 
 # Authentication and security
-passlib==1.7.4
-bcrypt==4.1.2
-cryptography==42.0.2
-python-jose[cryptography]==2.22
+passlib
+bcrypt
+cryptography
+python-jose[cryptography]
+jwt
+
 
 # Database
-prisma==0.11.0
-motor==3.3.2
+prisma
+motor
 
 # Caching and rate limiting
-redis==5.0.1
-redis-om==0.3.3
-aioredis==2.0.1
+redis
+redis-om
+aioredis
 
 # AI and ML
-google-generativeai==0.3.2
-SpeechRecognition==3.10.0
-pillow==10.2.0
-numpy==1.26.4
-pydub==0.25.1
+google-generativeai
+SpeechRecognition
+pillow
+numpy
+pydub
+pytesseract==0.3.10
+gTTS
 
 # PDF generation
-reportlab==4.1.0
-pypdf2==3.0.1
+reportlab
+pypdf2
+
+# PDF processing
+pdf2image
+poppler-utils  # Required for pdf2image
 
 # Utilities
-python-slugify==8.0.4
-python-magic==0.4.27
-aiofiles==23.2.1
-requests==2.31.0
-pydantic[email]==3.10.0
+python-slugify
+python-magic
+aiofiles
+requests
+pydantic[email]
 
 # Testing
-pytest==8.0.0
-pytest-asyncio==0.23.5
-httpx==0.26.0
+pytest
+pytest-asyncio
+httpx

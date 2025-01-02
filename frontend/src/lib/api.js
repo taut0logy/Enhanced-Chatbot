@@ -52,12 +52,17 @@ export const api = {
         'Authorization': `Bearer ${localStorage.getItem('token')}`,
       },
       body: JSON.stringify({ text }),
-    })
+    });
+
     if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.detail || 'Failed to convert text to speech')
+      const error = await response.json();
+      throw new Error(error.detail || 'Failed to convert text to speech');
     }
-    return response.blob()
+
+    // Get the audio data as an ArrayBuffer
+    const arrayBuffer = await response.arrayBuffer();
+    // Convert ArrayBuffer to Blob with correct MIME type
+    return new Blob([arrayBuffer], { type: 'audio/mpeg' });
   },
 
   // File endpoints
@@ -160,5 +165,57 @@ export const api = {
       throw new Error(error.detail || 'Failed to generate custom PDF')
     }
     return response.json()
+  },
+
+  async verifyEmail(token) {
+    try {
+      const response = await fetch('/api/auth/verify-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Verification failed');
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error verifying email:', error);
+      throw error;
+    }
+  },
+
+  async deleteContent(contentId) {
+    const response = await fetch(`${API_BASE_URL}/api/content/${contentId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      },
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Failed to delete content');
+    }
+    
+    return true;
+  },
+
+  async getContents() {
+    const response = await fetch(`${API_BASE_URL}/api/content`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      },
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Failed to fetch contents');
+    }
+    
+    return response.json();
   },
 } 

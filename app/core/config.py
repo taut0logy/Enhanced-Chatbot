@@ -16,12 +16,15 @@ class Settings(BaseSettings):
     ENVIRONMENT: str
     
     PDF_STORAGE_PATH: str = "storage/pdfs"
+    TEMP_STORAGE_PATH: str = "storage/temp"
+
+    # Cache settings
+    CACHE_TTL: int = 3600  # 1 hour
     
     # API settings
     API_PREFIX: str = "/api"
     ALLOWED_HOSTS: List[str] = ["*"]
     GOOGLE_API_KEY: str
-    GOOGLE_API_MODEL: str
     
     # Database settings
     MONGODB_URL: str

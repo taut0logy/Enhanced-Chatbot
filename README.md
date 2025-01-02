@@ -23,6 +23,15 @@ An advanced chatbot platform that extends beyond traditional text-based interact
 - OCR: EasyOCR
 - PDF Generation: FPDF
 
+## Required Software
+
+- python, pip
+- node, npm
+- ffmpeg
+- Tesseract OCR
+- Poppler
+- Google Gemini API
+
 ## Setup Instructions
 
 1. Clone the repository

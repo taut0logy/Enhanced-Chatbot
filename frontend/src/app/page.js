@@ -103,7 +103,7 @@ export default function Home() {
           if (response) {
             setMessages(prev => [
               ...prev,
-              { text: "Voice message sent", isBot: false },
+              { text: "Voice message sent", isBot: false, transcription: response.transcription },
               { text: response.text, isBot: true }
             ])
           }
@@ -143,7 +143,7 @@ export default function Home() {
 
   const handleFileUpload = async (file) => {
     try {
-      toast.loading("Processing file...", { id: "fileUpload" });
+      toast.loading("Processing file...", { id: "fileUploadLoading" });
       const response = await api.uploadFile(file);
       
       if (response.success) {
@@ -152,16 +152,16 @@ export default function Home() {
           { text: `File processed: ${file.name}`, isBot: false },
           { text: response.data.text, isBot: true }
         ]);
-        toast.success("File processed successfully", { id: "fileUpload" });
+        toast.success("File processed successfully", { id: "fileUploadSuccess" });
       } else if (response.error) {
         toast.error("Failed to process file", {
-          id: "fileUpload",
+          id: "fileUploadError",
           description: response.error || "An unexpected error occurred"
         });
       }
     } catch (error) {
       toast.error("Failed to process file", {
-        id: "fileUpload",
+        id: "fileUploadError",
         description: error.message || "An unexpected error occurred"
       });
       // Reset any upload state or progress
@@ -243,6 +243,7 @@ export default function Home() {
                       <ChatMessage
                         key={index}
                         message={msg.text}
+                        transcription={msg.transcription}
                         isBot={msg.isBot}
                       />
                     ))}
@@ -303,6 +304,7 @@ export default function Home() {
                       <ChatMessage
                         key={index}
                         message={msg.text}
+                        transcription={msg.transcription}
                         isBot={msg.isBot}
                       />
                     ))}

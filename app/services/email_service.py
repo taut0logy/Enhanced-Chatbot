@@ -4,7 +4,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
 from typing import Optional
-import jwt
+from jose import jwt, JWTError
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -55,7 +55,7 @@ class EmailService:
                 'type': 'email_verification'
             },
             settings.JWT_SECRET,
-            algorithm='HS256'
+            algorithm=settings.JWT_ALGORITHM
         )
 
     def _generate_reset_token(self, email: str, otp: str, expiration_minutes: int = 60) -> str:
@@ -68,18 +68,24 @@ class EmailService:
                 'type': 'password_reset'
             },
             settings.JWT_SECRET,
-            algorithm='HS256'
+            algorithm=settings.JWT_ALGORITHM
         )
 
     def verify_token(self, token: str, token_type: str) -> Optional[dict]:
         try:
-            payload = jwt.decode(token, settings.JWT_SECRET, algorithms=['HS256'])
+            payload = jwt.decode(
+                token, 
+                settings.JWT_SECRET,
+                algorithms=[settings.JWT_ALGORITHM]
+            )
             if payload.get('type') != token_type:
                 return None
             return payload
         except jwt.ExpiredSignatureError:
+            logger.warning("Token has expired")
             return None
-        except jwt.JWTError:
+        except JWTError as e:
+            logger.error(f"JWT verification failed: {str(e)}")
             return None
 
     def send_verification_email(self, email: str):

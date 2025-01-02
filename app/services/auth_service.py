@@ -193,4 +193,30 @@ class AuthService:
             logger.error(f"Failed to delete user: {str(e)}")
             raise
 
+    async def verify_email(self, email: str) -> bool:
+        """Mark user's email as verified in the database."""
+        try:
+            async with db.get_client() as client:
+                user = await client.user.update(
+                    where={"email": email},
+                    data={"emailVerified": True}
+                )
+                logger.info(f"Email verified for user: {email}")
+                return bool(user)
+        except Exception as e:
+            logger.error(f"Failed to verify email: {str(e)}")
+            raise
+
+    async def is_email_verified(self, user_id: str) -> bool:
+        """Check if user's email is verified."""
+        try:
+            async with db.get_client() as client:
+                user = await client.user.find_unique(
+                    where={"id": user_id}
+                )
+                return bool(user and user.emailVerified)
+        except Exception as e:
+            logger.error(f"Failed to check email verification: {str(e)}")
+            raise
+
 auth_service = AuthService() 

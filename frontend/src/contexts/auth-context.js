@@ -3,12 +3,14 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { useUser } from '@/hooks/use-user';
 
 const AuthContext = createContext({});
 
+const publicPaths = ['/login', '/signup', '/verify-email', '/forgot-password', '/reset-password'];
+
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { user, isLoading, mutate } = useUser();
   const router = useRouter();
 
   const signup = useCallback(async (userData) => {
@@ -32,7 +34,6 @@ export function AuthProvider({ children }) {
       }
 
       localStorage.setItem('token', data.access_token);
-      setUser(data.user);
       toast.success('Signup successful! Please verify your email.');
       router.push('/verify-email');
       return data;
@@ -59,14 +60,9 @@ export function AuthProvider({ children }) {
         throw new Error(JSON.stringify(data));
       }
 
-      // Set token in localStorage
       localStorage.setItem('token', data.access_token);
+      await mutate();
       
-      // Set secure cookie with proper attributes
-      const secure = window.location.protocol === 'https:';
-      document.cookie = `token=${data.access_token}; path=/; ${secure ? 'secure;' : ''} samesite=lax; max-age=86400`; // 24 hours
-      
-      setUser(data.user);
       toast.success('Login successful!');
       router.push('/');
       return data;
@@ -74,7 +70,7 @@ export function AuthProvider({ children }) {
       toast.error('Login failed. Please check your credentials.');
       throw error;
     }
-  }, [router]);
+  }, [router, mutate]);
 
   const logout = useCallback(async () => {
     try {
@@ -89,21 +85,17 @@ export function AuthProvider({ children }) {
         });
       }
 
-      // Clear localStorage and cookies
+      mutate();
       localStorage.removeItem('token');
-      const secure = window.location.protocol === 'https:';
-      document.cookie = `token=; path=/; ${secure ? 'secure;' : ''} samesite=lax; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
-      
-      // Clear user state after navigation
-      await router.replace('/login');
-      setUser(null);
+
+      router.replace('/login');
+      mutate();
       toast.success('Logged out successfully');
     } catch (error) {
       console.error('Logout error:', error);
       localStorage.removeItem('token');
       document.cookie = `token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
-      await router.replace('/login');
-      setUser(null);
+      router.replace('/login');
       toast.error('Logged out with some errors');
     }
   }, [router]);
@@ -126,7 +118,6 @@ export function AuthProvider({ children }) {
         throw new Error(data.detail || 'Failed to update profile');
       }
 
-      setUser(data);
       toast.success('Profile updated successfully');
       return data;
     } catch (error) {
@@ -150,7 +141,7 @@ export function AuthProvider({ children }) {
         throw new Error(data.detail || 'Failed to delete account');
       }
 
-      setUser(null);
+      a
       localStorage.removeItem('token');
       router.push('/login');
       toast.success('Account deleted successfully');
@@ -210,42 +201,20 @@ export function AuthProvider({ children }) {
 
   // Use useEffect for initial auth check
   useEffect(() => {
-    const checkInitialAuth = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          setLoading(false);
-          return;
-        }
+    // Don't perform redirects while still loading
+    if (isLoading) return;
 
-        const response = await fetch('/api/auth/me', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
+    const currentPath = window.location.pathname;
+    const isPublicPath = publicPaths.some(path => currentPath.startsWith(path));
 
-        if (!response.ok) {
-          throw new Error('Authentication failed');
-        }
-
-        const data = await response.json();
-        setUser(data);
-      } catch (error) {
-        console.error('Auth check error:', error);
-        localStorage.removeItem('token');
-        document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    checkInitialAuth();
-  }, []);
+    if (!user && !isPublicPath) {
+      router.push('/login');
+    } else if (user && isPublicPath) {
+      router.push('/');
+    }
+  }, [user, isLoading, router]);
 
   const value = {
-    user,
-    loading,
     login,
     signup,
     logout,
@@ -257,7 +226,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider value={value}>
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
 }

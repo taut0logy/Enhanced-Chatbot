@@ -3,11 +3,11 @@ import { NextResponse } from 'next/server';
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8000';
 
 export async function GET(request) {
-  const { searchParams } = new URL(request.url);
-  const queryString = searchParams.toString();
-  const url = `${BACKEND_URL}/api/content${queryString ? `?${queryString}` : ''}`;
-
   try {
+    const { searchParams } = new URL(request.url);
+    const queryString = searchParams.toString();
+    const url = `${BACKEND_URL}/api/content${queryString ? `?${queryString}` : ''}`;
+
     const response = await fetch(url, {
       headers: {
         ...Object.fromEntries(request.headers),
@@ -15,11 +15,16 @@ export async function GET(request) {
       },
     });
 
+    if (!response.ok) {
+      throw new Error('Failed to fetch contents');
+    }
+
     const data = await response.json();
-    return NextResponse.json(data, { status: response.status });
+    return NextResponse.json(data);
   } catch (error) {
+    console.error('Error fetching contents:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch from backend: ' + error.message },
+      { error: 'Failed to fetch contents' },
       { status: 500 }
     );
   }

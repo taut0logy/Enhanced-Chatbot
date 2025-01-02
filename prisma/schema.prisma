@@ -31,6 +31,7 @@ model User {
   chatMessages  ChatMessage[]
   files         File[]
   contents      GeneratedContent[]
+  emailVerified Boolean   @default(false)
 }
 
 model Story {
@@ -73,6 +74,7 @@ model GeneratedContent {
   type        ContentType
   title       String
   filename    String?
+  prompt      String?
   content     String      // For chat messages or text content
   fileUrl     String?     // For PDFs, voice files, or other file types
   metadata    Json?       // Additional metadata specific to content type

@@ -27,8 +27,37 @@ export async function GET(request, { params }) {
 }
 
 export async function POST(request, { params }) {
-  const route = params.route.join('/');
-  const url = `${BACKEND_URL}/api/auth/${route}`;
+  const routePath = params.route.join('/');
+  const firstRoute = params.route[0];
+
+  if (firstRoute === 'verify-email') {
+    try {
+      const { token } = await request.json();
+      
+      const response = await fetch(`${BACKEND_URL}/api/auth/verify-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Verification failed');
+      }
+
+      const data = await response.json();
+      return Response.json(data);
+    } catch (error) {
+      console.error('Error verifying email:', error);
+      return Response.json(
+        { error: 'Email verification failed' },
+        { status: 400 }
+      );
+    }
+  }
+
+  const url = `${BACKEND_URL}/api/auth/${routePath}`;
   
   try {
     const contentType = request.headers.get('content-type');
@@ -61,7 +90,7 @@ export async function POST(request, { params }) {
     const nextResponse = NextResponse.json(data, { status: response.status });
     
     // If login was successful, set the cookie
-    if (route === 'login' && response.ok && data.access_token) {
+    if (routePath === 'login' && response.ok && data.access_token) {
       nextResponse.cookies.set('token', data.access_token, {
         path: '/',
         httpOnly: true,

@@ -1,9 +1,11 @@
 import logging
-from typing import Dict, Optional, Any, BinaryIO
+from typing import Dict, Optional, Any, BinaryIO, List
 import google.generativeai as genai
 from PIL import Image
 import numpy as np
-import easyocr
+import pytesseract
+from PyPDF2 import PdfReader
+from pdf2image import convert_from_bytes
 from app.core.config import settings
 from app.services.cache_service import cache_service
 from app.services.content_service import content_service
@@ -17,12 +19,65 @@ logger = logging.getLogger(__name__)
 class FileService:
     def __init__(self):
         genai.configure(api_key=settings.GOOGLE_API_KEY)
-        self.reader = easyocr.Reader(['en'])
         self.cache = cache_service
         logger.info("FileService initialized")
 
+    def _process_pdf(self, file: BinaryIO) -> str:
+        """Extract text from PDF using OCR on each page."""
+        try:
+            logger.info("Starting PDF processing")
+            
+            # Ensure we're at the start of the file
+            file.seek(0)
+            
+            # Read PDF file
+            pdf_data = file.read()
+            
+            try:
+                # Convert PDF pages to images
+                images = convert_from_bytes(
+                    pdf_data,
+                    dpi=300,  # Higher DPI for better quality
+                    fmt='PNG'
+                )
+                
+                # Process each page with OCR
+                extracted_texts = []
+                for i, image in enumerate(images, 1):
+                    logger.info(f"Processing page {i}/{len(images)}")
+                    
+                    # Convert to RGB if necessary
+                    if image.mode != 'RGB':
+                        image = image.convert('RGB')
+                    
+                    # Perform OCR
+                    text = pytesseract.image_to_string(image)
+                    if text.strip():
+                        extracted_texts.append(text)
+                    
+                    # Clean up memory
+                    image.close()
+                
+                if not extracted_texts:
+                    logger.warning("No text extracted from PDF")
+                    return "No text could be extracted from the PDF."
+                
+                # Combine all extracted text
+                full_text = "\n\n".join(extracted_texts)
+                logger.info(f"Successfully extracted text from PDF: {len(full_text)} characters")
+                return full_text
+                
+            except Exception as pdf_error:
+                logger.error(f"Error processing PDF: {str(pdf_error)}")
+                raise ValueError(f"Failed to process PDF: {str(pdf_error)}")
+                
+        except Exception as e:
+            error_msg = f"Failed to process PDF: {str(e)}"
+            logger.error(error_msg)
+            raise ValueError(error_msg)
+
     def _process_image(self, file: BinaryIO) -> str:
-        """Extract text from image using EasyOCR."""
+        """Extract text from image using Pytesseract."""
         try:
             logger.info("Starting OCR process")
             
@@ -44,14 +99,8 @@ class FileService:
                 if image.mode != 'RGB':
                     image = image.convert('RGB')
                 
-                # Convert to numpy array for EasyOCR
-                image_np = np.array(image)
-                
-                # Perform OCR
-                results = self.reader.readtext(image_np)
-                
-                # Extract text from results
-                text = ' '.join([result[1] for result in results])
+                # Perform OCR using pytesseract
+                text = pytesseract.image_to_string(image)
                 
                 if not text.strip():
                     logger.warning("No text extracted from image")
@@ -104,9 +153,10 @@ class FileService:
             {content}
             
             Please include:
-            1. A summary of the main points
-            2. Key insights or observations
-            3. Any relevant recommendations
+            1. The contents of the file you are analyzing
+            2. A summary of the main points
+            3. Key insights or observations
+            4. Any relevant recommendations
             """
             
             model_name = model_name or settings.DEFAULT_MODEL
@@ -132,6 +182,74 @@ class FileService:
             error_msg = f"Failed to generate AI response: {str(e)}"
             logger.error(error_msg)
             raise ValueError(error_msg)
+    
+    
+    async def process_file_with_gemini(self, file: BinaryIO, filename: str, user_id: str, model_name: Optional[str] = None) -> Dict[str, Any]:
+        """Process file based on its type."""
+        try:
+            file_ext = os.path.splitext(filename)[1].lower()
+            logger.info(f"Processing file: {filename} with extension: {file_ext}")
+
+            # Read file content based on type
+            if file_ext in ['.jpg', '.jpeg', '.png', '.webp','.heic','.heif','.pdf', '.mp4', '.mpeg', '.mpg', '.3gpp', '.webm', '.mp3', 'wav', '.aac', '.ogg', '.flac', '.txt', '.html', '.css', '.md']:
+                file_path = os.path.join(settings.TEMP_STORAGE_PATH, f"temp{user_id}.{file_ext}")
+                os.makedirs(os.path.dirname(file_path), exist_ok=True)
+                file.seek(0)
+                file_content = file.read()
+                with open(file_path, "wb") as f:
+                    f.write(file_content)
+                    
+                logger.info(f"File size: {os.path.getsize(file_path)}")
+                uploaded_file = genai.upload_file(path=file_path)
+
+                prompt = f"""You are a helpful assistant. You are given a file. Please analyze it and provide a detailed response.
+                The response will have the following five clearly defined sections:
+                - Summary of the file (1-2 sentences)
+                - Transcribed contents of the file)
+                - Analysis of the file
+                - Key insights or observations
+                - Any relevant recommendations
+                """
+
+                model = genai.GenerativeModel(model_name=model_name)
+                response = model.generate_content([uploaded_file, prompt])
+                
+                # Extract the text content from the response
+                content = response.text
+
+                # Clean up temporary files
+                os.remove(file_path)
+                uploaded_file.delete()
+                
+            elif file_ext in ['.doc', '.docx']:
+                logger.info("Processing text file")
+                response = self._process_text_file(file)
+                content = await self._generate_ai_response(response, model_name)
+            else:
+                error_msg = f"Unsupported file type: {file_ext}"
+                logger.error(error_msg)
+                raise ValueError(error_msg)
+        
+            await content_service.save_content(
+                user_id=user_id,
+                content_type="FILE",
+                title=filename,
+                content=content,  # Save the text content
+                filename=filename,
+                metadata={
+                    "file_type": file_ext,
+                    "model": model_name
+                }
+            )
+
+            return {
+                "content": content,
+                "model": model_name,
+                "text": content
+            }
+        except Exception as e:
+            logger.error(f"Error processing file: {str(e)}")
+            raise ValueError(str(e))
 
     async def process_file(self, file: BinaryIO, filename: str, user_id: str, model_name: Optional[str] = None) -> Dict[str, Any]:
         """Process file based on its type."""
@@ -143,7 +261,10 @@ class FileService:
             if file_ext in ['.jpg', '.jpeg', '.png', '.bmp', '.webp']:
                 logger.info("Processing image file")
                 content = self._process_image(file)
-            elif file_ext in ['.txt', '.doc', '.docx', '.pdf']:
+            elif file_ext == '.pdf':
+                logger.info("Processing PDF file")
+                content = self._process_pdf(file)
+            elif file_ext in ['.txt', '.doc', '.docx']:
                 logger.info("Processing text file")
                 content = self._process_text_file(file)
             else:
@@ -176,7 +297,7 @@ class FileService:
             return {
                 "content": content,
                 "model": model_name,
-                "text": response
+                "text": response,
             }
 
         except Exception as e:

@@ -17,7 +17,7 @@ export default function HistoryLayout({ children }) {
   return (
     <div className="relative min-h-screen">
       <div className="py-8">
-        <div className="container">
+        <div className="container mx-auto px-4">
           <div className="mx-auto flex max-w-[980px] flex-col items-start gap-2">
             <h1 className="text-3xl font-bold leading-tight tracking-tighter md:text-4xl">
               Content History

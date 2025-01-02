@@ -17,6 +17,7 @@ class ContentService:
         content_type: str,
         title: str,
         content: str,
+        prompt: Optional[str] = None,
         filename: Optional[str] = None,
         file_url: Optional[str] = None,
         metadata: Optional[Dict] = None
@@ -29,6 +30,7 @@ class ContentService:
                         "userId": user_id,
                         "type": content_type,
                         "title": title,
+                        "prompt": prompt,
                         "content": content,
                         "filename": filename,
                         "fileUrl": file_url,
